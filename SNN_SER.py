@@ -1,6 +1,10 @@
 '''
 Spiking Neural network implementation for FER tasks.
-Based on code by  https://github.com/peter-u-diehl/stdp-mnist
+Based on code by
+https://github.com/peter-u-diehl/stdp-mnist
+and
+
+
 
 
 
@@ -89,7 +93,7 @@ def plot_input(rates):
     Plot the current input example during the training procedure.
     '''
     fig = b.figure(fig_num, figsize=(5, 5))
-    im = b.imshow(rates.reshape((100, 100)), interpolation='nearest', vmin=0, vmax=64, cmap='binary')
+    im = b.imshow(rates.reshape((40, 388)), interpolation='nearest', vmin=0, vmax=64, cmap='binary')
     b.colorbar(im)
     b.title('Current input example')
     fig.canvas.draw()
@@ -101,7 +105,7 @@ def update_input(rates, im, fig):
     '''
     Update the input image to use for input plotting.
     '''
-    im.set_array(rates.reshape((100, 100)))
+    im.set_array(rates.reshape((40, 388)))
     fig.canvas.draw()
     return im
 
@@ -154,13 +158,15 @@ def get_2d_input_weights():
     # return the rearranged weights to display to the user
     if n_e == 1:
         ceil_sqrt = int(math.ceil(math.sqrt(conv_features)))
-        square_weights = np.zeros((100 * ceil_sqrt, 100 * ceil_sqrt))
+        square_weights = np.zeros((40 * ceil_sqrt, 388 * ceil_sqrt))
         for n in xrange(conv_features):
-            square_weights[(n // ceil_sqrt) * 100: ((n // ceil_sqrt) + 1) * 100,
-            (n % ceil_sqrt) * 100: ((n % ceil_sqrt) + 1) * 100] = rearranged_weights[n * 100: (n + 1) * 100, :]
+            square_weights[(n // ceil_sqrt) * 40: ((n // ceil_sqrt) + 1) * 388,
+            (n % ceil_sqrt) * 40: ((n % ceil_sqrt) + 1) * 388] = rearranged_weights[n * 40: (n + 1) * 388, :]
 
         return square_weights.T
     else:
+
+
         return rearranged_weights.T
 
 
@@ -382,7 +388,43 @@ def update_performance_plot(lines, performances, current_example_num, fig):
     return lines, performances
 
 
+
 def predict_label(assignments, input_numbers, spike_rates):
+    '''
+    Given the label assignments of the excitatory layer and their spike rates over
+    the past 'update_interval', get the ranking of each of the categories of input.
+    '''
+    most_spiked_summed_rates = [0] * 6
+    num_assignments = [0] * 6
+
+    most_spiked_array = np.array(np.zeros((conv_features, n_e)), dtype=bool)
+
+    for feature in xrange(conv_features):
+        # count up the spikes for the neurons in this convolution patch
+        column_sums = np.sum(spike_rates[feature: feature + 1, :], axis=0)
+
+        # find the excitatory neuron which spiked the most
+        most_spiked_array[feature, np.argmax(column_sums)] = True
+
+    # for each label
+    for i in xrange(6):
+        # get the number of label assignments of this type
+        #print(assignments.shape)
+        #print(most_spiked_array.shape)
+        num_assignments[i] = len(np.where(assignments[most_spiked_array] == i)[0])
+
+        if len(spike_rates[np.where(assignments[most_spiked_array] == i)]) > 0:
+            # sum the spike rates of all excitatory neurons with this label, which fired the most in its patch
+            most_spiked_summed_rates[i] = np.sum(
+                spike_rates[np.where(np.logical_and(assignments == i, most_spiked_array))]) / float(
+                np.sum(spike_rates[most_spiked_array]))
+
+
+    return (np.argsort(summed_rates)[::-1] for summed_rates in
+            ( most_spiked_summed_rates))
+
+
+def predict_labelold(assignments, input_numbers, spike_rates):
     '''
     Given the label assignments of the excitatory layer and their spike rates over
     the past 'update_interval', get the ranking of each of the categories of input.
@@ -500,7 +542,7 @@ def evaluate_results():
 
     assignments = assign_labels(training_result_monitor, training_input_numbers)
 
-    voting_mechanisms = ['all', 'most-spiked (per patch)', 'most-spiked (overall)', ]
+    voting_mechanisms = [ 'most-spiked' ]
 
     test_results = {}
     for mechanism in voting_mechanisms:
@@ -1171,7 +1213,7 @@ if __name__ == '__main__':
     run_snn()
 
     #save spiking activity history
-    np.save('spikefileImage.npy', spikemon)
+    np.save('spikefileAudio.npy', spikemon)
 
     # save and plot results
     save_results()
