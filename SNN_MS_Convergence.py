@@ -1,6 +1,5 @@
 '''
-Convolutional spiking neural network training, testing, and evaluation script. Evaluation can be done outside of this script; however, it is most straightforward to call this
-script with mode=train, then mode=test on HPC systems, where in the test mode, the network evaluation is written to disk.
+Multisensory integration by convergence code based on diehl and cook code. modified to compute multisensory integration by convergence for audio and visual data
 '''
 
 import warnings
